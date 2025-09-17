@@ -156,7 +156,7 @@ impl Watcher {
             return;
         }
         log::info!("got update from file {file_path:?}");
-        self.execute(file_path.as_os_str());
+        self.execute_file(file_path.as_os_str());
         // NOTE: for some reason, individual files need to be re-watched.
         // this works out for us because we don't want `fthis`'s writes
         // (via `self.execute`) to trigger another update before the user
@@ -164,15 +164,23 @@ impl Watcher {
         let _ = self.add(file_path);
     }
 
-    fn execute(&mut self, file_path: &OsStr) {
+    fn execute_file(&mut self, file_path: &OsStr) {
         let mut buffer = Buffer::<1024>::new();
         let _ = std::write!(&mut buffer, "echo asdf\n");
+        self.execute_partial(&mut buffer);
+        self.execute_finish(&mut buffer);
+    }
+
+    fn execute_partial<const N: usize>(&mut self, buffer: &mut Buffer<N>) {
         self.child_process
             .stdin
             .as_mut()
             .unwrap()
             .write_all(buffer.pull())
             .expect("couldn't write to child process stdin");
+    }
+
+    fn execute_finish<const N: usize>(&mut self, buffer: &mut Buffer<N>) {
         self.child_process
             .stdin
             .as_mut()
