@@ -27,7 +27,10 @@ fn main() {
     }
     std::assert!(success_count > 0, "all files failed to be watched");
 
-    watcher.watch();
+    loop {
+        log::info!("watching for changes...");
+        watcher.watch();
+    }
 }
 
 struct Watcher {
@@ -70,17 +73,29 @@ impl Watcher {
 
         for event in events {
             let file_path = self.file_path(&event);
-            log::info!("got event from file {file_path:?}");
+            if file_path.len() > 0 {
+                self.handle_update(file_path, event.name.is_some());
+            }
         }
     }
 
     fn file_path(&self, event: &Event<&OsStr>) -> OsString {
+        // Directories have the file-path in `event.name`:
         if let Some(name) = event.name {
             return name.to_os_string();
         }
+        // Files need to be retrieved via the `WatchDescriptor`:
         if let Some(name) = self.watch_map.get(&event.wd) {
             return name.clone();
         }
         return "".into();
+    }
+
+    fn handle_update(&mut self, file_path: OsString, directory_update: bool) {
+        log::info!("got event from file {file_path:?}");
+        if !directory_update {
+            // NOTE: for some reason, individual files need to be re-watched.
+            let _ = self.add(file_path);
+        }
     }
 }
