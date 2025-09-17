@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use core::fmt::{self, Write};
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
@@ -56,6 +57,10 @@ impl<const N: usize> Buffer<N> {
         &self.buffer[0..length]
     }
 
+    fn peek(&self) -> &[u8] {
+        &self.buffer[0..self.cursor]
+    }
+
     fn read_from<R>(&mut self, readable: &mut R) -> io::Result<()>
     where
         R: IoRead,
@@ -79,27 +84,58 @@ impl<const N: usize> Write for Buffer<N> {
     }
 }
 
-struct Watcher {
-    child_process: process::Child,
-    inotify: Inotify,
-    watch_map: HashMap<WatchDescriptor, OsString>,
+struct ChildProcess {
+    child: process::Child,
 }
 
-impl Drop for Watcher {
+impl Drop for ChildProcess {
     fn drop(&mut self) {
-        let _ = self.child_process.kill();
+        let _ = self.child.kill();
     }
+}
+
+impl ChildProcess {
+    fn new(shell: &str) -> Result<Self, io::Error> {
+        let child = process::Command::new(shell)
+            // don't share stdin/out with this (parent) process:
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()?;
+        Ok(Self { child })
+    }
+
+    fn add_stdin<const N: usize>(&mut self, buffer: &mut Buffer<N>) {
+        self.child
+            .stdin
+            .as_mut()
+            .unwrap()
+            .write_all(buffer.pull())
+            .expect("couldn't write to child process stdin");
+    }
+
+    fn get_stdout<const N: usize>(&mut self, buffer: &mut Buffer<N>) {
+        self.child
+            .stdin
+            .as_mut()
+            .unwrap()
+            .flush()
+            .expect("couldn't flush child process stdin");
+        buffer
+            .read_from(self.child.stdout.as_mut().unwrap())
+            .expect("couldn't read child process stdout");
+    }
+}
+
+struct Watcher {
+    child_process: ChildProcess,
+    inotify: Inotify,
+    watch_map: HashMap<WatchDescriptor, OsString>,
 }
 
 impl Watcher {
     fn new(shell: &str) -> Self {
         Self {
-            child_process: process::Command::new(shell)
-                // Don't share stdin/out with this (parent) process:
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .spawn()
-                .expect("failed to spawn a child shell process"),
+            child_process: ChildProcess::new(shell).expect("failed to spawn a child shell process"),
             inotify: Inotify::init().expect("error initializing inotify instance"),
             watch_map: HashMap::new(),
         }
@@ -167,29 +203,8 @@ impl Watcher {
     fn execute_file(&mut self, file_path: &OsStr) {
         let mut buffer = Buffer::<1024>::new();
         let _ = std::write!(&mut buffer, "echo asdf\n");
-        self.execute_partial(&mut buffer);
-        self.execute_finish(&mut buffer);
-    }
-
-    fn execute_partial<const N: usize>(&mut self, buffer: &mut Buffer<N>) {
-        self.child_process
-            .stdin
-            .as_mut()
-            .unwrap()
-            .write_all(buffer.pull())
-            .expect("couldn't write to child process stdin");
-    }
-
-    fn execute_finish<const N: usize>(&mut self, buffer: &mut Buffer<N>) {
-        self.child_process
-            .stdin
-            .as_mut()
-            .unwrap()
-            .flush()
-            .expect("couldn't flush child process stdin");
-        buffer
-            .read_from(self.child_process.stdout.as_mut().unwrap())
-            .expect("couldn't read child process stdout");
+        self.child_process.add_stdin(&mut buffer);
+        self.child_process.get_stdout(&mut buffer);
         let output = std::str::from_utf8(buffer.pull()).expect("ok");
         log::info!("got output {output}");
     }
