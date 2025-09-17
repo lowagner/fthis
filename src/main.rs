@@ -91,11 +91,13 @@ impl Watcher {
         return "".into();
     }
 
-    fn handle_update(&mut self, file_path: OsString, directory_update: bool) {
-        log::info!("got event from file {file_path:?}");
-        if !directory_update {
-            // NOTE: for some reason, individual files need to be re-watched.
-            let _ = self.add(file_path);
+    fn handle_update(&mut self, file_path: OsString, from_directory_update: bool) {
+        if from_directory_update {
+            log::warn!("got directory update, ignoring, use `fthis {file_path:?}` instead");
+            return;
         }
+        log::info!("got update from file {file_path:?}");
+        // NOTE: for some reason, individual files need to be re-watched.
+        let _ = self.add(file_path);
     }
 }
