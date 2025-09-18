@@ -106,7 +106,17 @@ impl ChildProcess {
             .stdout(out_writer.try_clone()?)
             .stderr(out_writer)
             .spawn()?;
-        Ok(Self { child, out_reader })
+        let mut result = Self { child, out_reader };
+
+        // TODO: remove this testing stuff
+        let mut buffer = Buffer::<1024>::new();
+        let _ = std::write!(&mut buffer, "asdf=0\n");
+        result.add_stdin(&mut buffer);
+        result.get_stdout(&mut buffer);
+        let output = std::str::from_utf8(buffer.pull()).expect("ok");
+        log::info!("got output {output}");
+
+        Ok(result)
     }
 
     fn add_stdin<const N: usize>(&mut self, buffer: &mut Buffer<N>) {
@@ -210,7 +220,7 @@ impl Watcher {
 
     fn execute_file(&mut self, file_path: &OsStr) {
         let mut buffer = Buffer::<1024>::new();
-        let _ = std::write!(&mut buffer, "echo asdf\n");
+        let _ = std::write!(&mut buffer, "asdf=((asdf + 1)); echo $asdf\n");
         self.child_process.add_stdin(&mut buffer);
         self.child_process.get_stdout(&mut buffer);
         let output = std::str::from_utf8(buffer.pull()).expect("ok");
