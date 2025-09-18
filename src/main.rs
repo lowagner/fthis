@@ -2,7 +2,7 @@
 use core::fmt::{self, Write};
 use std::collections::HashMap;
 use std::ffi::{OsStr, OsString};
-use std::io::{self, Read as IoRead, Write as IoWrite};
+use std::io::{self, PipeReader, Read as IoRead, Write as IoWrite, pipe};
 use std::process::{self, Stdio};
 
 use inotify::{Event, Inotify, WatchDescriptor, WatchMask};
@@ -86,6 +86,7 @@ impl<const N: usize> Write for Buffer<N> {
 
 struct ChildProcess {
     child: process::Child,
+    out_reader: PipeReader,
 }
 
 impl Drop for ChildProcess {
@@ -96,12 +97,16 @@ impl Drop for ChildProcess {
 
 impl ChildProcess {
     fn new(shell: &str) -> Result<Self, io::Error> {
+        let (out_reader, out_writer) = pipe()?;
+
         let child = process::Command::new(shell)
-            // don't share stdin/out with this (parent) process:
+            // don't share stdin with parent process:
             .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
+            // redirect stdout/stderr to the same `PipeWriter`:
+            .stdout(out_writer.try_clone()?)
+            .stderr(out_writer)
             .spawn()?;
-        Ok(Self { child })
+        Ok(Self { child, out_reader })
     }
 
     fn add_stdin<const N: usize>(&mut self, buffer: &mut Buffer<N>) {
@@ -120,9 +125,12 @@ impl ChildProcess {
             .unwrap()
             .flush()
             .expect("couldn't flush child process stdin");
+        log::info!("flushed stdin");
+
         buffer
-            .read_from(self.child.stdout.as_mut().unwrap())
+            .read_from(&mut self.out_reader)
             .expect("couldn't read child process stdout");
+        log::info!("read stdout");
     }
 }
 
