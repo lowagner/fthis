@@ -20,7 +20,7 @@ int main(int nargs, const char **vargs) {
         return 1;
     }
 
-    int descriptors[MAX_WATCH_COUNT] = {-1};
+    int descriptors[MAX_WATCH_COUNT] = {0};
 
     int inotify_fd = inotify_init();
     if (inotify_fd == -1) {
