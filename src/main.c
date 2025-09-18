@@ -8,6 +8,8 @@
 #define INOTIFY_BUFFER_SIZE (16 * INOTIFY_EVENT_SIZE)
 #define MAX_WATCH_COUNT 10
 
+void handle(const char *file_name);
+
 int main(int nargs, const char **vargs) {
     if (nargs < 2) {
         printf("%s [file_path]\n", vargs[0]);
@@ -32,7 +34,7 @@ int main(int nargs, const char **vargs) {
         if (wd == -1) {
             fprintf(stderr, "could not watch %s\n", vargs[c]);
         } else {
-            printf("watching %s with descriptor %d\n", vargs[c], wd);
+            printf("watching %s (wd = %d)\n", vargs[c], wd);
             watch_count += 1;
             descriptors[c] = wd;
         }
@@ -76,7 +78,25 @@ int main(int nargs, const char **vargs) {
                 } else {
                     const char *file_name = vargs[name_offset];
                     printf("handling file %s update (wd = %d)\n", file_name, event->wd);
-                    // TODO: re-add file after handling it
+                    handle(file_name);
+
+                    // need to re-add file watches for some reason.
+                    int wd = inotify_add_watch(inotify_fd, file_name, IN_MODIFY);
+                    if (wd == -1) {
+                        fprintf(stderr, "could not re-watch %s\n", file_name);
+                        if (--watch_count <= 0) {
+                            fprintf(stderr, "ran out of files to watch\n");
+                            return 1;
+                        }
+                    } else {
+                        printf("rewatching %s (wd = %d)\n", file_name, wd);
+                        descriptors[name_offset] = wd;
+                    }
+                    // NOTE: cleanup doesn't seem necessary, i'm getting errors here:
+                    // int error = inotify_rm_watch(inotify_fd, event->wd);
+                    // if (error != 0) {
+                    //     fprintf(stderr, "had error removing wd %d: %d\n", event->wd, error);
+                    // }
                 }
             }
             offset += sizeof(struct inotify_event) + event->len;
@@ -84,4 +104,8 @@ int main(int nargs, const char **vargs) {
     }
 
     return 0;
+}
+
+void handle(const char *file_name) {
+    // TODO
 }
