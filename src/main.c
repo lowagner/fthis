@@ -6,12 +6,19 @@
 #define MAX_PATH_BYTES 4096
 #define INOTIFY_EVENT_SIZE (sizeof(struct inotify_event) + MAX_PATH_BYTES)
 #define INOTIFY_BUFFER_SIZE (16 * INOTIFY_EVENT_SIZE)
+#define MAX_WATCH_COUNT 10
 
 int main(int nargs, const char **vargs) {
     if (nargs < 2) {
         printf("%s [file_path]\n", vargs[0]);
         return 1;
     }
+    if (nargs >= MAX_WATCH_COUNT) {
+        printf("%s [file_path] # with fewer files, please\n", vargs[0]);
+        return 1;
+    }
+
+    int descriptors[MAX_WATCH_COUNT] = {-1};
 
     int inotify_fd = inotify_init();
     if (inotify_fd == -1) {
@@ -27,6 +34,7 @@ int main(int nargs, const char **vargs) {
         } else {
             printf("watching %s with descriptor %d\n", vargs[c], wd);
             watch_count += 1;
+            descriptors[c] = wd;
         }
     }
     if (watch_count == 0) {
@@ -45,11 +53,32 @@ int main(int nargs, const char **vargs) {
         ssize_t offset = 0;
         while (offset < read_bytes) {
             struct inotify_event *event = (struct inotify_event *)(inotify_buffer + offset);
-            printf("inotify event wd = %d", event->wd);
             if (event->len > 0) {
-                printf(", name = %s", event->name);
+                fprintf(
+                    stderr,
+                    "ignoring inotify event for file %s from directory wd = %d\n",
+                    event->name, event->wd
+                );
+            } else {
+                int name_offset = 0;
+                for (int c = 1; c < MAX_WATCH_COUNT; ++c) {
+                    if (event->wd == descriptors[c]) {
+                        name_offset = c;
+                        break;
+                    }
+                }
+                if (name_offset == 0) {
+                    fprintf(
+                        stderr,
+                        "unknown file name from wd = %d\n",
+                        event->wd
+                    );
+                } else {
+                    const char *file_name = vargs[name_offset];
+                    printf("handling file %s update (wd = %d)\n", file_name, event->wd);
+                    // TODO: re-add file after handling it
+                }
             }
-            printf("\n");
             offset += sizeof(struct inotify_event) + event->len;
         }
     }
