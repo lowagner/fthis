@@ -10,7 +10,7 @@
 
 int main(int nargs, const char **vargs) {
     if (nargs != 2) {
-        printf("%s path/to/file.txt # exactly 1 file, please!\n", vargs[0]);
+        fprintf(stderr, "%s path/to/file.txt # exactly 1 file, please!\n", vargs[0]);
         return 1;
     }
     const char *file_path = vargs[1];
@@ -26,7 +26,7 @@ int main(int nargs, const char **vargs) {
         fprintf(stderr, "could not watch %s\n", file_path);
         return 1;
     }
-    printf("watching %s (wd = %d)\n", file_path, file_wd);
+    fprintf(stderr, "watching %s (wd = %d)\n", file_path, file_wd);
 
     uint8_t inotify_buffer[INOTIFY_BUFFER_SIZE];
     int result = 0;
@@ -48,7 +48,7 @@ int main(int nargs, const char **vargs) {
                 );
                 QUIT_MAIN(1);
             } else if (event->wd == file_wd) {
-                printf("found event associated with file %s (wd = %d)\n", file_path, file_wd);
+                fprintf(stderr, "found event associated with file %s (wd = %d)\n", file_path, file_wd);
                 QUIT_MAIN(0);
             } else {
                 fprintf(stderr, "got unexpected watch descriptor (wd = %d)\n", event->wd);

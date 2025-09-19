@@ -1,0 +1,8 @@
+file_path=$1
+if [ -z "$file_path" ]; then
+    >&2 echo 'usage: `. path/to/fthis path/to/file/to/watch.txt`'
+    return 1
+fi
+result=$(wthis $file_path)
+echo $result
+return 0
