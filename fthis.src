@@ -19,9 +19,9 @@ while true; do
         echo -e "#${fthis_iteration} output:" >> $file_path
         # TODO: better stderr capturing
         # TODO: for some reason variable assignment doesn't work
-        result=$(eval $to_execute 2>&1)
-        >&2 echo $result
-        echo $result >> $file_path
+        result=$(eval "$to_execute" 2>&1)
+        echo "$result" >> $file_path
+        >&2 echo "$result"
         ((++fthis_iteration))
         echo -e "\n#⬇EXECUTE⬇" >> $file_path
         #}
