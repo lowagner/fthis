@@ -9,16 +9,24 @@ if [ -z "$(which wthis)" ]; then
 fi
 fthis_iteration=0
 while true; do
+    #{
     to_execute=$(sed -e '1,/#⬇EXECUTE⬇/ d' $file_path)
     if [ -n "$to_execute" ]; then
+        #{
         sed -i '/#⬇EXECUTE⬇/Q' $file_path
-        >&2 echo "executing $to_execute"
+        >&2 echo "EXECUTING $to_execute"
         echo -e "#${fthis_iteration} input:\n$to_execute" >> $file_path
-        # TODO: actually eval and print output
         echo -e "#${fthis_iteration} output:" >> $file_path
+        # TODO: better stderr capturing
+        # TODO: for some reason variable assignment doesn't work
+        result=$(eval $to_execute 2>&1)
+        >&2 echo $result
+        echo $result >> $file_path
         ((++fthis_iteration))
-        echo -e "#⬇EXECUTE⬇" >> $file_path
+        echo -e "\n#⬇EXECUTE⬇" >> $file_path
+        #}
     else
+        #{
         >&2 echo "nothing to execute"
         last_line=$(tail -c 16 $file_path)
         if [ "$last_line" != "
@@ -27,6 +35,8 @@ while true; do
         else
             >&2 echo "already have EXECUTE ready at last line"
         fi
+        #}
     fi
     wthis $file_path
+    #}
 done
