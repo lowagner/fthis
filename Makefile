@@ -1,2 +1,2 @@
-wthis: src/main.c
+wthis: wthis.c
 	$(CC) -o $@ $^
