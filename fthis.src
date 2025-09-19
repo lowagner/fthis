@@ -7,6 +7,26 @@ if [ -z "$(which wthis)" ]; then
     >&2 echo 'could not find `wthis`, please install'
     return 1;
 fi
-result=$(wthis $file_path)
-echo $result
-return 0
+fthis_iteration=0
+while true; do
+    to_execute=$(sed -e '1,/#⬇EXECUTE⬇/ d' $file_path)
+    if [ -n "$to_execute" ]; then
+        sed -i '/#⬇EXECUTE⬇/Q' $file_path
+        >&2 echo "executing $to_execute"
+        echo -e "#${fthis_iteration} input:\n$to_execute" >> $file_path
+        # TODO: actually eval and print output
+        echo -e "#${fthis_iteration} output:" >> $file_path
+        ((++fthis_iteration))
+        echo -e "#⬇EXECUTE⬇" >> $file_path
+    else
+        >&2 echo "nothing to execute"
+        last_line=$(tail -c 16 $file_path)
+        if [ "$last_line" != "
+#⬇EXECUTE⬇" ]; then
+            echo -e "#⬇EXECUTE⬇" >> $file_path
+        else
+            >&2 echo "already have EXECUTE ready at last line"
+        fi
+    fi
+    wthis $file_path
+done
