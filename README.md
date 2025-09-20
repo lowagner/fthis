@@ -9,7 +9,8 @@ using a file editor of choice but still have quick command feedback
 ## install
 
 do `make install`, checking out the `Makefile` to see what it's doing
-under the hood.
+under the hood.  if you use vim, consider adding what's in `vimrc`
+to your `$HOME/.vimrc`.
 
 ## usage
 
@@ -28,7 +29,8 @@ the more unwieldy `. fthis.src some_file`.  we use `source` (or `.`)
 to maintain state and avoid variable expansion issues with `eval`,
 so internally we do `source .tmp.file` where `.tmp.file` is created
 with the commands after `# ⬇EXECUTE⬇`.  we use `inotify` (Linux-only)
-to notify `fthis` of when `some_file` changes.
+to notify `fthis` of when `some_file` changes, in `wthis` (Watch THIS).
+`fthis` will automatically call `wthis` as needed.
 
 ## future
 
