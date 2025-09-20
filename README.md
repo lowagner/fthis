@@ -22,6 +22,10 @@ in some other program/terminal, but state will be preserved in the
 `fthis` terminal in case you want to check on the state of variables
 after some shell commands are run and you Ctrl+C the `fthis` terminal.
 
+try it out with `fthis test.sh` in one terminal, and then edit
+`test.sh` in a different window.  you can Ctrl+C the `fthis` terminal
+when you're done and continue with any desired commands/state there.
+
 ## how it works
 
 under the hood we create a bash function `fthis some_file` to avoid
