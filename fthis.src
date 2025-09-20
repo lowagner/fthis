@@ -3,6 +3,7 @@ if [ -z "$fthis_file_path" ]; then
     >&2 echo 'usage: `. path/to/fthis path/to/file/to/watch.txt`'
     return 1
 fi
+# TODO: on trap, delete this file:
 fthis_input_file=.tmp.$fthis_file_path
 if [ -z "$(which wthis)" ]; then
     >&2 echo 'could not find `wthis`, please install'
