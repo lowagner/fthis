@@ -25,7 +25,7 @@ after some shell commands are run and you Ctrl+C the `fthis` terminal.
 ## how it works
 
 under the hood we create a bash function `fthis some_file` to avoid
-the more unwieldy `. fthis.src some_file`.  we use `source` (or `.`)
+the more unwieldy `. fthis.sh some_file`.  we use `source` (or `.`)
 to maintain state and avoid variable expansion issues with `eval`,
 so internally we do `source .tmp.file` where `.tmp.file` is created
 with the commands after `# ⬇EXECUTE⬇`.  we use `inotify` (Linux-only)
