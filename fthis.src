@@ -13,14 +13,14 @@ fthis_iteration=0
 while true; do
     #{
     # move everything after execute into a new file:
-    sed -e '1,/#⬇EXECUTE⬇/ d' $fthis_file_path > $fthis_input_file
+    sed -e '1,/# ⬇EXECUTE⬇/ d' $fthis_file_path > $fthis_input_file
     if [[ -z $(grep '[^[:space:]]' $fthis_input_file) ]]; then
         #{
         >&2 echo "nothing to execute"
-        last_line=$(tail -c 16 $fthis_file_path)
+        last_line=$(tail -c 17 $fthis_file_path)
         if [ "$last_line" != "
-#⬇EXECUTE⬇" ]; then
-            echo -e "#⬇EXECUTE⬇" >> $fthis_file_path
+# ⬇EXECUTE⬇" ]; then
+            echo -e "# ⬇EXECUTE⬇" >> $fthis_file_path
         else
             >&2 echo "already have EXECUTE ready at last line"
         fi
@@ -28,17 +28,17 @@ while true; do
     else
         #{
         # delete everything after execute, including execute:
-        sed -i '/^#⬇EXECUTE⬇/Q' $fthis_file_path
+        sed -i '/^# ⬇EXECUTE⬇/Q' $fthis_file_path
         # display input:
-        echo -e "#${fthis_iteration} input:" > >(tee -a $fthis_file_path >&2)
+        echo -e "# ${fthis_iteration} input:" > >(tee -a $fthis_file_path >&2)
         cat $fthis_input_file > >(tee -a $fthis_file_path >&2)
         # display output:
-        echo -e "#${fthis_iteration} output:" > >(tee -a $fthis_file_path >&2)
+        echo -e "# ${fthis_iteration} output:" > >(tee -a $fthis_file_path >&2)
         # tee tmp stdout to file and to our stderr
         # tee tmp stderr to file and to our stderr
         source $fthis_input_file > >(tee -a $fthis_file_path >&2) 2> >(tee -a $fthis_file_path >&2)
         # reset file for next iteration:
-        echo -e "\n#⬇EXECUTE⬇" > >(tee -a $fthis_file_path >&2)
+        echo -e "\n# ⬇EXECUTE⬇" > >(tee -a $fthis_file_path >&2)
         ((++fthis_iteration))
         #}
     fi

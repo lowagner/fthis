@@ -15,7 +15,7 @@ under the hood.
 
 the idea is to do `fthis some_file` to start up a "terminal" in
 `some_file` which will execute commands after the file is saved/modified.
-you edit `some_file` as desired and any commands after the `#⬇EXECUTE⬇`
+you edit `some_file` as desired and any commands after the `# ⬇EXECUTE⬇`
 line will be executed on save.  this will will require opening `some_file`
 in some other program/terminal, but state will be preserved in the
 `fthis` terminal in case you want to check on the state of variables
@@ -27,7 +27,7 @@ under the hood we create a bash function `fthis some_file` to avoid
 the more unwieldy `. fthis.src some_file`.  we use `source` (or `.`)
 to maintain state and avoid variable expansion issues with `eval`,
 so internally we do `source .tmp.file` where `.tmp.file` is created
-with the commands after `#⬇EXECUTE⬇`.  we use `inotify` (Linux-only)
+with the commands after `# ⬇EXECUTE⬇`.  we use `inotify` (Linux-only)
 to notify `fthis` of when `some_file` changes.
 
 ## future
